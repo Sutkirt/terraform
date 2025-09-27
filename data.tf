@@ -15,6 +15,7 @@ data "aws_ami" "ecs_optimized" {
 }
 
 data "aws_instance" "foo" {
+  depends_on = [aws_autoscaling_group.bar]
 
   filter {
     name   = "tag:application"
@@ -23,6 +24,6 @@ data "aws_instance" "foo" {
 }
 
 output "instanceid" {
-  value = data.aws_instance.foo.private_ip
+  value = data.aws_instance.foo.id
 
 }
