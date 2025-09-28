@@ -11,19 +11,19 @@ resource "aws_efs_file_system" "nexus" {
 
 resource "aws_efs_mount_target" "nexus_az1" {
   file_system_id  = aws_efs_file_system.nexus.id
-  subnet_id       = "subnet-00f1be2cc61fe155c"
-  security_groups = ["sg-09f4b4a5801b31185"]
+  subnet_id       = element(data.aws_subnets.default_sub.ids,0)
+  security_groups = [data.aws_security_group.default.id]
 }
 
 resource "aws_efs_mount_target" "nexus_az2" {
   file_system_id  = aws_efs_file_system.nexus.id
-  subnet_id       = "subnet-0ca792222c939242e"
-  security_groups = ["sg-09f4b4a5801b31185"]
+  subnet_id       = element(data.aws_subnets.default_sub.ids,1)
+  security_groups = [data.aws_security_group.default.id]
 }
+
 
 resource "aws_efs_access_point" "nexus_data" {
   file_system_id = aws_efs_file_system.nexus.id
-
   posix_user {
     uid = 200
     gid = 200
@@ -129,8 +129,8 @@ resource "aws_ecs_task_definition" "nexus" {
   network_mode             = "bridge"
   cpu                      = "1524"
   memory                   = "4048"
-  execution_role_arn       = "arn:aws:iam::296352766082:role/ecsTaskExecutionRole"
-  task_role_arn            = "arn:aws:iam::296352766082:role/ecsTaskExecutionRole"
+  execution_role_arn       = data.aws_iam_role.role.arn
+  task_role_arn            = data.aws_iam_role.role.arn
 
   container_definitions = jsonencode([
     {
@@ -216,8 +216,8 @@ resource "aws_lb" "nexus" {
   name               = "${terraform.workspace}-nexus"
   internal           = false
   load_balancer_type = "application"
-  security_groups    = ["sg-09f4b4a5801b31185"]
-  subnets            = ["subnet-0ca792222c939242e", "subnet-00f1be2cc61fe155c"]
+  security_groups    = [data.aws_security_group.default.id]
+  subnets            = data.aws_subnets.default_sub.ids
 
   enable_deletion_protection = false
 
@@ -232,7 +232,7 @@ resource "aws_lb_target_group" "nexus" {
   port        = 8081
   protocol    = "HTTP"
   target_type = "instance"
-  vpc_id      = "vpc-00f2a9392ffd68490"
+  vpc_id      = data.aws_vpc.default.id
 
   health_check {
     path                = "/"
